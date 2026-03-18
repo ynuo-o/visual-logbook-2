@@ -323,4 +323,93 @@ To detect more lines and potentially additional directions, I tuned `numPeaks` i
 - Parameters like `FillGap` and `MinLength` in `houghlines` are important for controlling output quality — small gaps between fragments can be bridged, and very short segments can be filtered out.
 - The 3D surface plot was a helpful way to visualise the accumulator and understand why multiple peaks emerge from a structured image like a circuit.
 
+## Task 4: Segmentation by Thresholding
 
+### Objective
+The goal of this task is to segment yeast cells from the background in `yeast_cells.tif` using Otsu's method, explore its limitations when cells are touching, and apply Watershed segmentation as an alternative method to separate touching cells.
+
+
+
+### Code
+```matlab
+clear all; close all; clc;
+
+%% Step 1: Read image
+f = imread('assets/yeast_cells.tif');
+figure(1);
+imshow(f);
+title('Original Image');
+
+%% Step 2: Otsu's method - global thresholding
+T = graythresh(f);
+g_otsu = imbinarize(f, T);
+figure(2);
+montage({f, g_otsu});
+title(sprintf('Original | Otsu Segmentation (T = %.3f)', T));
+
+%% Step 3: Show limitation - touching cells are merged
+g_otsu_inv = ~g_otsu;
+cc = bwconncomp(g_otsu_inv);
+fprintf('Number of detected regions (Otsu): %d\n', cc.NumObjects);
+
+%% Step 4: Watershed segmentation
+g_bin = ~g_otsu;
+D = bwdist(~g_bin);
+D = -D;
+D(~g_bin) = Inf;
+L = watershed(D);
+g_bin(L == 0) = 0;
+
+figure(3);
+montage({f, g_otsu, g_bin});
+title('Original | Otsu | Watershed Segmentation');
+
+%% Step 5: Overlay watershed result on original
+figure(4);
+imshow(f); hold on;
+visboundaries(bwlabel(g_bin), 'Color', 'red');
+title('Watershed: Detected Cell Boundaries');
+```
+
+
+
+### Results & Analysis
+
+**Figure 1 — Original Image**
+
+<img src="task4_1.png" width="400">
+
+The original fluorescence microscopy image shows a number of elongated yeast cells on a dark background. Each cell appears as a bright grey region with a brighter spot (nucleus) inside. Several cells are visibly touching or overlapping each other, particularly in the central cluster.
+
+**Figure 2 — Otsu's Segmentation (T = 0.165)**
+
+<img src="task4_2.png" width="500">
+
+Otsu's method automatically determined a threshold of T = 0.165, separating the bright cells from the dark background. The binary result correctly identifies the cells as white foreground regions. However, cells that are touching each other are merged into a single connected white region, making it impossible to count or separate them individually. This is the key limitation of global thresholding — it has no spatial awareness of individual object boundaries.
+
+**Figure 3 — Original | Otsu | Watershed Segmentation**
+
+<img src="task4_3.png" width="500">
+
+The Watershed segmentation result (bottom-left) shows that the touching cells have been separated. The algorithm works by treating the distance transform of the binary image as a topographic surface, then finding the "ridges" (watershed lines) between separate regions. Compared to Otsu, more individual cells are distinguishable as separate regions.
+
+**Figure 4 — Watershed: Detected Cell Boundaries**
+
+<img src="task4_4.png" width="400">
+
+The red boundaries overlaid on the original image show where the Watershed algorithm has drawn dividing lines between cells. Individual cells are clearly outlined, including those that were previously merged by Otsu's method. However, some over-segmentation is visible — a few cells are split into multiple regions, and some boundary lines extend into the background. This is a known limitation of the Watershed approach when applied without careful pre-processing.
+
+
+
+### Conclusion
+
+Otsu's method successfully separates cells from the background but fails to distinguish touching cells, as it operates purely on intensity values without any spatial context. Watershed segmentation addresses this by using the distance transform to find natural separation boundaries between objects, allowing touching cells to be segmented individually. However, Watershed can over-segment if not carefully tuned.
+
+
+
+### What I Learnt & Reflections
+
+- Otsu's method finds the optimal global threshold by minimising intra-class intensity variance — it works well for separating foreground from background but cannot handle touching objects.
+- The Watershed algorithm treats the image as a topographic surface; "water" fills from local minima and watershed lines form where different "basins" meet — effectively separating touching regions.
+- Over-segmentation is a common issue with Watershed; pre-processing steps like smoothing or using marker-controlled Watershed can reduce this.
+- This task highlighted that no single method is perfect — the choice of segmentation technique depends heavily on the image content and the specific goal.
