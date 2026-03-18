@@ -729,7 +729,84 @@ The algorithm detected **19 matches**, while a careful manual count of the visib
 
 
 
+## Challenge 2: F14 Fighter Jet Segmentation
 
+### Objective
+Produce a binary image of `f14.png` where only the F14 fighter jet is shown as white and the rest of the image (sky and ground) is black.
+
+
+
+### Code
+```matlab
+clear all; close all;
+
+I = imread('assets/f14.png');
+figure(1);
+imshow(I);
+title('Original F14 Image');
+
+if size(I, 3) == 3
+    Igray = rgb2gray(I);
+else
+    Igray = I;
+end
+
+T = graythresh(Igray);
+bw = ~imbinarize(Igray, T);    % invert: jet is darker than background
+
+figure(2);
+imshow(bw);
+title('After invert');
+
+bw = imfill(bw, 'holes');
+bw = bwareaopen(bw, 500);
+
+L = bwlabel(bw);
+stats = regionprops(L, 'Area');
+areas = [stats.Area];
+[~, largest] = max(areas);
+bw_jet = (L == largest);
+
+figure(3);
+montage({Igray, uint8(bw_jet * 255)});
+title('Original | F14 Binary Mask');
+```
+
+
+### Results
+
+**Figure 1 — Original Image**
+
+<img src="challenge2_1.png" width="400">
+
+The original grayscale image shows an F14 fighter jet flying against a bright sky background. The jet body is noticeably darker than the surrounding sky, which is key to the segmentation approach.
+
+**Figure 2 — After Inversion**
+
+<img src="challenge2_2.png" width="400">
+
+After applying Otsu's threshold and inverting the result, the jet appears as a white region on a black background. The inversion is necessary because the jet is darker than the sky — a standard Otsu threshold without inversion would produce the opposite result (sky = white, jet = black).
+
+**Figure 3 — Original vs Binary Mask**
+
+<img src="challenge2_3.png" width="500">
+
+The final binary mask clearly shows the F14 jet as white against a fully black background. Some small internal holes remain within the jet body due to dark engine and cockpit regions having similar intensity to the background. The overall shape and silhouette of the jet is well captured.
+
+
+
+### Conclusion
+
+The key challenge in this task was recognising that the jet is **darker** than the background, which means a standard Otsu threshold produces the wrong polarity. Inverting the binary image corrects this. The largest connected component was then selected to remove any remaining small noise regions from the ground visible at the bottom of the image.
+
+
+
+### What I Learnt & Reflections
+
+- When the foreground object is darker than the background, the binary result from Otsu must be inverted to get the correct segmentation.
+- `imfill` helps close internal holes caused by dark features within the jet (e.g. cockpit, engines), but some holes remain where intensity is very similar to the background.
+- Selecting only the largest connected component is a simple but effective way to remove unwanted small regions without manual parameter tuning.
+- A more precise result could be achieved using more advanced techniques such as active contours or GrabCut, which take spatial context into account rather than relying purely on intensity thresholding.
 
 
 
