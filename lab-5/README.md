@@ -646,7 +646,86 @@ The combination of distance transform and Watershed segmentation successfully se
 - The Watershed label image appears as a left-to-right greyscale gradient because labels are assigned sequentially, not randomly — this is expected behaviour and not an error.
 - This approach works particularly well for circular or convex objects; for irregular or elongated shapes, additional pre-processing (such as marker-controlled Watershed) would be needed to avoid over-segmentation.
 
+## Challenge 1: Match Detection and Counting
 
+### Objective
+Detect and count all matches in the image `random_matches.tif` using morphological processing and skeleton-based connected component analysis.
+
+
+
+### Code
+```matlab
+clear all; close all;
+
+I = imread('assets/random_matches.tif');
+if size(I, 3) == 3
+    I = rgb2gray(I);
+end
+
+T = graythresh(I);
+bw = im2bw(I, T * 1.1);
+bw = bwareaopen(bw, 3000);
+
+figure(1);
+imshow(bw);
+title('Binary image - cleaned');
+
+skel = bwmorph(bw, 'thin', Inf);
+branch = bwmorph(skel, 'branchpoints');
+branch = imdilate(branch, strel('disk', 4));
+skel2 = skel & ~branch;
+skel2 = bwareaopen(skel2, 60);
+
+L = bwlabel(skel2);
+num_matches = max(L(:));
+fprintf('Number of matches detected: %d\n', num_matches);
+
+figure(2);
+imshow(I); hold on;
+colors = hsv(num_matches);
+for k = 1:num_matches
+    idx = find(L == k);
+    [r, c] = ind2sub(size(L), idx);
+    plot(c, r, '.', 'Color', colors(k,:), 'MarkerSize', 4);
+end
+title(sprintf('Detected matches — Count: %d', num_matches));
+```
+
+
+
+### Results
+
+**Figure 1 — Cleaned Binary Image**
+
+<img src="challenge1_1.png" width="400">
+
+After applying a slightly elevated Otsu threshold (`T * 1.1`) and removing regions smaller than 3000 pixels, the binary image shows clean white match sticks on a black background with minimal background noise.
+
+**Figure 2 — Detected and Labelled Matches**
+
+<img src="challenge1_2.png" width="400">
+
+Each detected match segment is overlaid on the original image in a distinct colour. The algorithm detected **19 matches**, which is consistent with a manual count of the visible matches in the original image.
+
+
+
+### Method Explained
+
+- A higher-than-Otsu threshold was used to suppress the grey carpet texture from the background.
+- `bwareaopen` removed small noise regions, keeping only match-sized objects.
+- `bwmorph('thin')` reduced each match to a 1-pixel-wide skeleton.
+- Branch points (where two matches cross) were detected and dilated, then removed from the skeleton — effectively cutting matches apart at their crossing points.
+- Short skeleton fragments (below 60 pixels) were discarded as noise.
+- The remaining connected components were labelled and counted.
+
+
+
+### What I Learnt & Reflections
+
+- Skeletonization followed by branch point removal is an effective way to separate crossing elongated objects that cannot be separated by thresholding alone.
+- The threshold multiplier (`T * 1.1`) and minimum area (`bwareaopen`) required careful tuning to balance noise removal against losing actual match data.
+- The algorithm detected **19 matches**, however the actual number of matches in the image is **15**. The over-count is likely due to some matches being split into multiple segments at their crossing points, where the branch point removal cuts one match into two or more fragments. A larger dilation radius for branch point removal or a longer minimum skeleton length could reduce this error.
+- This task demonstrated that even a well-designed pipeline may not achieve perfect results — understanding and explaining the source of errors is an important part of image processing work.
 
 
 
