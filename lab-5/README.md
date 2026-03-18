@@ -553,7 +553,98 @@ K-means clustering is an effective method for colour-based image segmentation. B
 - The peppers image segmented more cleanly than the baboon image because its colours are more distinctly separated in RGB space, as seen in the scatter plots.
 - K-means results can vary slightly between runs due to random initialisation of cluster centres.
 
+## Task 6: Watershed Segmentation with Distance Transform
 
+### Objective
+The goal of this task is to segment an image of circular wooden dowels viewed end-on, separating each individual dowel into its own region — including those that are touching. The pipeline combines Otsu thresholding, morphological cleaning, distance transform, and Watershed segmentation.
+
+
+
+### Code
+```matlab
+% Watershed segmentation with Distance Transform
+clear all; close all;
+
+%% Step 1: Read and binarize image
+I = imread('assets/dowels.tif');
+f = im2bw(I, graythresh(I));
+g = bwmorph(f, "close", 1);
+g = bwmorph(g, "open", 1);
+
+figure(1)
+montage({I, g});
+title('Original & binarized cleaned image')
+
+%% Step 2: Distance Transform
+gc = imcomplement(g);
+D = bwdist(gc);
+figure(2)
+imshow(D, [min(D(:)) max(D(:))])
+title('Distance Transform')
+
+%% Step 3: Watershed on complement of distance transform
+L = watershed(imcomplement(D));
+figure(3)
+imshow(L, [0 max(L(:))])
+title('Watershed Segmented Label')
+
+%% Step 4: Merge everything to show final segmentation
+W = (L==0);
+g2 = g | W;
+figure(4)
+montage({I, g, W, g2}, 'size', [2 2]);
+title('Original Image - Binarized Image - Watershed regions - Merged dowels and segmented boundaries')
+```
+
+
+
+### Results & Analysis
+
+**Figure 1 — Original & Binarized Cleaned Image**
+
+<img src="task6_1.png" width="500">
+
+The left panel shows the original grayscale image of dowels on a dark cloth background. The right panel shows the result after Otsu thresholding followed by morphological closing and opening. The dowels appear as clean white circles on a black background. The morphological operations are essential here — the wood grain texture on each dowel creates internal noise after thresholding, and without closing and opening, the binary image would contain many small holes and fragments inside each dowel region.
+
+**Figure 2 — Distance Transform**
+
+<img src="task6_2.png" width="500">
+
+The distance transform assigns each foreground pixel a value equal to its distance to the nearest background pixel. The result shows bright "hills" at the centre of each dowel (where pixels are furthest from the background) and darker values towards the edges. This effectively converts each circular dowel into a smooth dome-shaped surface in intensity space, which is ideal input for the Watershed algorithm.
+
+The distance transform is computed on `gc` (the complement of `g`) rather than `g` directly, because `bwdist` measures distance to the nearest **white** pixel. By complementing the binary image, the background becomes white, so the distance values are measured from each foreground pixel to the nearest background — giving the largest values at the centre of each dowel.
+
+**Figure 3 — Watershed Segmented Label**
+
+<img src="task6_3.png" width="500">
+
+The Watershed algorithm is applied to the complement of the distance transform, treating it as a topographic surface where the "valleys" correspond to dowel centres. Each region is assigned a unique integer label. The image appears as a gradient from dark (left, low label numbers) to light (right, high label numbers) because `imshow(L, [0 max(L(:))])` maps label values linearly to greyscale — regions with smaller label indices appear darker, and those assigned higher indices appear lighter. The thin black lines between regions are the watershed boundaries.
+
+**Figure 4 — Final Segmentation Montage**
+
+<img src="task6_4.png" width="500">
+
+The four panels show the complete pipeline:
+
+- **Top-left — Original image**: the raw grayscale dowel image.
+- **Top-right — Binarized image (`g`)**: dowels as white circles after thresholding and morphological cleaning.
+- **Bottom-left — Watershed boundaries (`W`)**: only the boundary lines where `L == 0`, showing the dividing lines between adjacent dowel regions.
+- **Bottom-right — Merged result (`g2`)**: the binary dowel mask overlaid with the watershed boundary lines. Each dowel is clearly separated from its neighbours, including those that were touching in the original image.
+
+
+
+### Conclusion
+
+The combination of distance transform and Watershed segmentation successfully separates touching dowels that a simple thresholding approach would merge together. The key insight is that the distance transform creates a smooth "dome" surface for each circular object, allowing Watershed to find natural dividing lines between adjacent objects at the points where their domes meet. Morphological cleaning before the transform was essential to remove wood grain noise that would otherwise create false peaks and over-segmentation.
+
+
+
+### What I Learnt & Reflections
+
+- The distance transform is a powerful pre-processing step for Watershed — it converts flat binary regions into smooth surfaces with peaks at object centres, making it much easier to find separation boundaries.
+- Morphological `close` fills small holes inside objects, while `open` removes small isolated noise pixels — both are important for producing a clean binary image before further processing.
+- The Watershed label image appears as a left-to-right greyscale gradient because labels are assigned sequentially, not randomly — this is expected behaviour and not an error.
+- This approach works particularly well for circular or convex objects; for irregular or elongated shapes, additional pre-processing (such as marker-controlled Watershed) would be needed to avoid over-segmentation.
 
 
 
