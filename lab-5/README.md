@@ -413,3 +413,155 @@ Otsu's method successfully separates cells from the background but fails to dist
 - The Watershed algorithm treats the image as a topographic surface; "water" fills from local minima and watershed lines form where different "basins" meet — effectively separating touching regions.
 - Over-segmentation is a common issue with Watershed; pre-processing steps like smoothing or using marker-controlled Watershed can reduce this.
 - This task highlighted that no single method is perfect — the choice of segmentation technique depends heavily on the image content and the specific goal.
+
+
+## Task 5: Segmentation by K-Means Clustering
+
+### Objective
+The goal of this task is to apply k-means clustering to segment images by colour. Each pixel is treated as a point in 3D RGB colour space, and k-means groups pixels into k clusters based on colour similarity. The effect of different k values is explored on two images: `baboon.png` and `peppers.png`.
+
+
+
+### Code
+```matlab
+clear all; close all;
+
+%% ===== BABOON =====
+f = imread('assets/baboon.png');
+[M N S] = size(f);
+F = reshape(f, [M*N S]);
+R = F(:,1); G = F(:,2); B = F(:,3);
+C = double(F)/255;
+
+% Figure 1: 3D scatter plot with k-means centres
+figure(1);
+scatter3(R, G, B, 1, C);
+xlabel('RED', 'FontSize', 14);
+ylabel('GREEN', 'FontSize', 14);
+zlabel('BLUE', 'FontSize', 14);
+title('Baboon - RGB colour space scatter plot');
+
+k = 10;
+[L, centers] = imsegkmeans(f, k);
+hold on;
+scatter3(centers(:,1), centers(:,2), centers(:,3), 100, 'black', 'fill');
+title('Baboon - RGB scatter with k-means centres (k=10)');
+
+% Figure 2: Original vs segmented (k=10)
+J = label2rgb(L, im2double(centers));
+figure(2);
+montage({f, J});
+title('Baboon: Original | k-means Segmented (k=10)');
+
+% Figure 3: Different k values
+figure(3);
+results = {f};
+for k = [2, 5, 10, 20]
+    [L, centers] = imsegkmeans(f, k);
+    J = label2rgb(L, im2double(centers));
+    results{end+1} = J;
+end
+montage(results);
+title('Baboon: Original | k=2 | k=5 | k=10 | k=20');
+
+%% ===== PEPPERS =====
+p = imread('assets/peppers.png');
+[M N S] = size(p);
+F = reshape(p, [M*N S]);
+R = F(:,1); G = F(:,2); B = F(:,3);
+C = double(F)/255;
+
+% Figure 4: Peppers scatter plot
+figure(4);
+scatter3(R, G, B, 1, C);
+xlabel('RED', 'FontSize', 14);
+ylabel('GREEN', 'FontSize', 14);
+zlabel('BLUE', 'FontSize', 14);
+title('Peppers - RGB colour space scatter plot');
+
+% Figure 5: Different k values for peppers
+figure(5);
+results2 = {p};
+for k = [2, 5, 10, 20]
+    [L, centers] = imsegkmeans(p, k);
+    J = label2rgb(L, im2double(centers));
+    results2{end+1} = J;
+end
+montage(results2);
+title('Peppers: Original | k=2 | k=5 | k=10 | k=20');
+```
+
+
+
+### Results & Analysis
+
+#### Baboon
+
+**Figure 1 — RGB Colour Space Scatter Plot with K-Means Centres (k=10)**
+
+<img src="task5_1.png" width="500">
+
+Each pixel in the baboon image is plotted as a coloured dot in 3D RGB space. The scatter plot reveals that the baboon's colours span a wide range — from dark blues and greens (fur) to bright reds and oranges (nose and face markings). The 10 black filled circles mark the k-means cluster centres, each representing the mean colour of one cluster. The centres are well spread across the colour space, capturing the dominant colour regions in the image.
+
+**Figure 2 — Original vs K-Means Segmented (k=10)**
+
+<img src="task5_2.png" width="500">
+
+With k=10, the segmented image preserves the main colour regions of the baboon face well. The red nose, blue facial ridges, orange eyes, and grey-green fur are all clearly distinguishable as separate segments. Some fine texture detail is lost, as pixels within each cluster are all replaced by their cluster mean colour, giving a flat "posterised" appearance.
+
+**Figure 3 — Baboon: Effect of Different k Values**
+
+<img src="task5_3.png" width="500">
+
+- **k=2**: Only two colours — the image is reduced to a very coarse representation with little detail. Most of the face features are merged together.
+- **k=5**: More detail emerges. The red nose, blue ridges, and fur are roughly separated, but colours are still quite flat.
+- **k=10**: Good balance between detail and simplicity. The key facial features are well separated.
+- **k=20**: Very close to the original in appearance. More subtle colour variations in the fur and face are captured, though the difference from k=10 is marginal.
+
+
+
+#### Peppers
+
+**Figure 4 — Peppers RGB Colour Space Scatter Plot**
+
+<img src="task5_4.png" width="500">
+
+The peppers image has a more structured colour distribution compared to the baboon. The scatter plot shows distinct clusters corresponding to the red, green, yellow, and purple colours in the image. The points form more clearly separated groups, suggesting that k-means should perform well on this image.
+
+**Figure 5 — Peppers: Effect of Different k Values**
+
+<img src="task5_5.png" width="500">
+
+- **k=2**: The image is split into only two tones — most colour information is lost, and individual peppers are not distinguishable.
+- **k=5**: Individual peppers begin to appear in distinct colours. The red, green, and background purple are roughly captured.
+- **k=10**: The segmentation closely matches the original, with red, green, yellow, and orange peppers all well separated. The garlic and purple background are also clearly distinct.
+- **k=20**: Very similar to k=10 but with finer colour gradations within each pepper, producing a result very close to the original image.
+
+
+
+### Conclusion
+
+K-means clustering is an effective method for colour-based image segmentation. By treating each pixel as a point in RGB colour space, the algorithm groups similar colours together and replaces each pixel with its cluster mean. Increasing k improves visual fidelity but also increases computational cost. For the baboon image, k=10 gives a good balance; for the peppers image, k=10 already produces a result very close to the original due to its more distinct colour regions.
+
+
+
+### What I Learnt & Reflections
+
+- K-means clustering segments images by grouping pixels with similar RGB values — it has no spatial awareness, only colour similarity.
+- The 3D scatter plot is a useful tool for visualising how colours are distributed in an image and where cluster centres are placed.
+- A higher k value produces more colour detail but with diminishing returns — beyond a certain point, increasing k has little visible effect.
+- The peppers image segmented more cleanly than the baboon image because its colours are more distinctly separated in RGB space, as seen in the scatter plots.
+- K-means results can vary slightly between runs due to random initialisation of cluster centres.
+
+
+
+
+
+
+
+
+
+
+
+
+
