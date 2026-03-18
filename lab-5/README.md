@@ -298,7 +298,7 @@ The 3D surface view makes the accumulator peaks clearer. High "mountain" regions
 
 <img src="task3_4.png" width="500">
 
-`houghlines` draws multiple green line segments across the circuit layout. The number of detected segments is not necessarily equal to `numPeaks = 5`, for the following reasons:
+`houghlines` draws multiple green line segments across the circuit layout. The number of detected segments is `length(lines) = 12`, which is not equal to `numPeaks = 5`, for the following reasons:
 
 - A single Hough peak bin may correspond to more than one physical line segment in the image.
 - Edge points on the same ideal line can be fragmented into several shorter segments; `FillGap` and `MinLength` control whether nearby fragments are merged or discarded.
@@ -310,7 +310,9 @@ The longest detected segment is highlighted in cyan.
 
 ### Conclusion
 
-The Hough Transform pipeline successfully detected straight-line structures in the rotated circuit image. Canny extracted reliable edge points, and the Hough accumulator concentrated the evidence of lines into strong parameter regions. Using `houghpeaks` and `houghlines`, the algorithm returned line segments that match the circuit traces, demonstrating that the Hough Transform is effective for detecting global linear patterns even when the image is rotated.
+The Hough Transform pipeline successfully detected straight-line structures in the rotated circuit image. Canny extracted reliable edge points, and the Hough accumulator concentrated the evidence of lines into strong parameter regions. Using `houghpeaks` and `houghlines`, the algorithm returned line segments that match the circuit traces, demonstrating that the Hough Transform is effective for detecting global linear patterns even when the image is rotated. 
+
+To detect more lines and potentially additional directions, I tuned `numPeaks` in `houghpeaks`. Increasing `numPeaks` from 5 to 8 allowed more strong \((\theta,\rho)\) bins to be selected, which led to a larger set of line segments by `houghlines` (`length(lines)` grew from 12 to 24). If further improvement is needed, additional parameters to try are `FillGap` and `MinLength` in `houghlines`, as well as the Canny edge sensitivity, since edge continuity strongly affects how many line segments can be extracted.
 
 
 
