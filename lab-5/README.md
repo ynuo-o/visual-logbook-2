@@ -705,7 +705,7 @@ After applying a slightly elevated Otsu threshold (`T * 1.1`) and removing regio
 
 <img src="challenge1_2.png" width="400">
 
-Each detected match segment is overlaid on the original image in a distinct colour. The algorithm detected **19 matches**, which is consistent with a manual count of the visible matches in the original image.
+The algorithm detected **19 matches**, while a careful manual count of the visible matches in the original image gives **15**. The over-count of 4 is likely due to some matches being split into multiple skeleton segments when branch points are removed at crossing points.
 
 
 
