@@ -202,5 +202,123 @@ All three methods successfully detect edges in both images, but with different c
 - For Canny, using a two-value threshold `[low high]` allows finer control over which edges are preserved.
 - In medical imaging (e.g. MRI), edge detection could help highlight anatomical boundaries, though careful tuning is needed to avoid false detections.
 
+## Task 3: Hough Transform for Line Detection
+
+### Objective
+Use the Hough Transform to detect straight line segments in a rotated circuit image (`circuit_rotated.tif`). The pipeline consists of four steps: (1) detect edge points using Canny, (2) map those edge points into Hough space, (3) find prominent peaks in the accumulator, and (4) use `houghlines` to draw the detected line segments back on the original image.
+
+
+
+### Code
+```matlab
+clear all; close all; clc;
+
+%% Step 1: Read image and find edge points
+f = imread('assets/circuit_rotated.tif');
+fEdge = edge(f, 'Canny');
+figure(1);
+montage({f, fEdge});
+title('Original vs Canny edge');
+
+%% Step 2: Hough Transform and display accumulator
+[H, theta, rho] = hough(fEdge);
+figure(2);
+imshow(H, [], 'XData', theta, 'YData', rho, ...
+       'InitialMagnification', 'fit');
+xlabel('\theta (degrees)');
+ylabel('\rho (pixels)');
+title('Hough Transform accumulator');
+axis on; axis normal; hold on;
+
+%% Step 3: Find peaks in Hough space and overlay on H
+numPeaks = 5;
+peaks = houghpeaks(H, numPeaks);
+x = theta(peaks(:,2));
+y = rho(peaks(:,1));
+plot(x, y, 'o', 'Color', 'red', ...
+     'MarkerSize', 10, 'LineWidth', 1);
+
+%% Step 4: Visualise Hough space as 3D surface
+figure(3);
+surf(theta, rho, H);
+xlabel('\theta (degrees)', 'FontSize', 12);
+ylabel('\rho (pixels)', 'FontSize', 12);
+zlabel('Hough counts', 'FontSize', 12);
+title('Hough Transform (3D surface)');
+shading interp;
+colormap hot;
+colorbar;
+
+%% Step 5: Use houghlines to detect and draw line segments
+lines = houghlines(fEdge, theta, rho, peaks, ...
+                   'FillGap', 5, 'MinLength', 7);
+figure(4);
+imshow(f); hold on;
+title('Detected line segments using Hough transform');
+max_len = 0;
+for k = 1:length(lines)
+    xy = [lines(k).point1; lines(k).point2];
+    plot(xy(:,1), xy(:,2), 'LineWidth', 2, 'Color', 'green');
+    plot(xy(1,1), xy(1,2), 'x', 'LineWidth', 2, 'Color', 'yellow');
+    plot(xy(2,1), xy(2,2), 'x', 'LineWidth', 2, 'Color', 'red');
+    len = norm(lines(k).point1 - lines(k).point2);
+    if len > max_len
+        max_len = len;
+        longest_xy = xy;
+    end
+end
+if exist('longest_xy', 'var')
+    plot(longest_xy(:,1), longest_xy(:,2), 'LineWidth', 2, 'Color', 'cyan');
+end
+```
+
+
+
+### Results & Analysis
+
+**Figure 1 — Original vs Canny Edge**
+
+<img src="task3_1.png" width="500">
+
+The Canny result highlights the strongest boundaries in the rotated circuit image. These edge pixels serve as the input to the Hough Transform, since straight lines in the image produce consistent votes in Hough space.
+
+**Figure 2 — Hough Transform Accumulator with Peaks**
+
+<img src="task3_2.png" width="500">
+
+In the accumulator plot, the dominant structure appears as a curved or elongated ridge, where many combinations of θ and ρ receive votes. The red peak markers correspond to the strongest parameter bins, meaning there are many edge pixels aligned along particular straight-line directions.
+
+**Figure 3 — Hough Transform 3D Surface**
+
+<img src="task3_3.png" width="500">
+
+The 3D surface view makes the accumulator peaks clearer. High "mountain" regions correspond to strong line evidence. The surface shows multiple elevated areas, indicating the circuit contains several line segments and possibly multiple near-parallel lines that generate comparable votes.
+
+**Figure 4 — Detected Line Segments on Original Image**
+
+<img src="task3_4.png" width="500">
+
+`houghlines` draws multiple green line segments across the circuit layout. The number of detected segments is not necessarily equal to `numPeaks = 5`, for the following reasons:
+
+- A single Hough peak bin may correspond to more than one physical line segment in the image.
+- Edge points on the same ideal line can be fragmented into several shorter segments; `FillGap` and `MinLength` control whether nearby fragments are merged or discarded.
+- The circuit contains repeated parallel traces and right-angle patterns, which can create several strong local maxima or produce multiple valid segments around the same parameter peak.
+
+The longest detected segment is highlighted in cyan.
+
+
+
+### Conclusion
+
+The Hough Transform pipeline successfully detected straight-line structures in the rotated circuit image. Canny extracted reliable edge points, and the Hough accumulator concentrated the evidence of lines into strong parameter regions. Using `houghpeaks` and `houghlines`, the algorithm returned line segments that match the circuit traces, demonstrating that the Hough Transform is effective for detecting global linear patterns even when the image is rotated.
+
+
+
+### What I Learnt & Reflections
+
+- The Hough Transform works by converting each edge point into a sinusoidal curve in (θ, ρ) space — where multiple curves intersecting at the same point indicate a common straight line.
+- `houghpeaks` finds the strongest bins in the accumulator, but a single peak can correspond to multiple physical line segments in the image.
+- Parameters like `FillGap` and `MinLength` in `houghlines` are important for controlling output quality — small gaps between fragments can be bridged, and very short segments can be filtered out.
+- The 3D surface plot was a helpful way to visualise the accumulator and understand why multiple peaks emerge from a structured image like a circuit.
 
 
