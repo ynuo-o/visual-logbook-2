@@ -7,7 +7,7 @@ The goal of this task is to isolate the surrounding stars in an image of the Cra
 
 ### Result
 
-![Task 1 Output](task1.png)
+<img src="task1.png" width="500">
 
 
 
