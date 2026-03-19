@@ -525,7 +525,111 @@ Using all points produces too many false matches due to ambiguity. Selecting onl
 - The number of correct matches decreases after rotation (48 → 28), which is expected since some features near the image boundary are cropped out by `imrotate`, reducing the number of candidates.
 - In real applications like panorama stitching or object recognition, SIFT's combined scale and rotation invariance makes it one of the most robust feature detectors available.
 
+## Task 5: SIFT vs SURF Feature Matching on Traffic Video Frames
 
+### Objective
+Apply SIFT and SURF feature matching to two consecutive frames of a motorway traffic video (`traffic_1.jpg` and `traffic_2.jpg`), compare the number and quality of matches, and evaluate each method's suitability for object tracking between video frames.
+
+
+
+### Code
+```matlab
+clear all; close all;
+
+I1 = imread('assets/traffic_1.jpg');
+I2 = imread('assets/traffic_2.jpg');
+f1 = im2gray(I1);
+f2 = im2gray(I2);
+
+Nbest = 100;
+
+%% SIFT Matching
+points1_sift = detectSIFTFeatures(f1);
+points2_sift = detectSIFTFeatures(f2);
+
+best1_sift = points1_sift.selectStrongest(Nbest);
+best2_sift = points2_sift.selectStrongest(Nbest);
+
+[feat1_sift, vp1_sift] = extractFeatures(f1, best1_sift);
+[feat2_sift, vp2_sift] = extractFeatures(f2, best2_sift);
+
+pairs_sift = matchFeatures(feat1_sift, feat2_sift, 'Unique', true);
+mp1_sift = vp1_sift(pairs_sift(:,1),:);
+mp2_sift = vp2_sift(pairs_sift(:,2),:);
+
+fprintf('SIFT matches: %d\n', size(pairs_sift,1));
+
+figure(1);
+showMatchedFeatures(I1, I2, mp1_sift, mp2_sift, 'montage');
+title(sprintf('SIFT Matching — %d matches', size(pairs_sift,1)));
+
+%% SURF Matching
+points1_surf = detectSURFFeatures(f1);
+points2_surf = detectSURFFeatures(f2);
+
+best1_surf = points1_surf.selectStrongest(Nbest);
+best2_surf = points2_surf.selectStrongest(Nbest);
+
+[feat1_surf, vp1_surf] = extractFeatures(f1, best1_surf);
+[feat2_surf, vp2_surf] = extractFeatures(f2, best2_surf);
+
+pairs_surf = matchFeatures(feat1_surf, feat2_surf, 'Unique', true);
+mp1_surf = vp1_surf(pairs_surf(:,1),:);
+mp2_surf = vp2_surf(pairs_surf(:,2),:);
+
+fprintf('SURF matches: %d\n', size(pairs_surf,1));
+
+figure(2);
+showMatchedFeatures(I1, I2, mp1_surf, mp2_surf, 'montage');
+title(sprintf('SURF Matching — %d matches', size(pairs_surf,1)));
+
+%% Side by side comparison
+figure(3);
+subplot(1,2,1);
+showMatchedFeatures(f1, f2, mp1_sift, mp2_sift, 'montage');
+title(sprintf('SIFT: %d matches', size(pairs_sift,1)));
+subplot(1,2,2);
+showMatchedFeatures(f1, f2, mp1_surf, mp2_surf, 'montage');
+title(sprintf('SURF: %d matches', size(pairs_surf,1)));
+```
+
+
+
+### Results & Analysis
+
+**Figure 1 — SIFT Matching (37 matches)**
+
+<img src="task5_1.png" width="500">
+
+SIFT produced 37 matches between the two traffic frames. The match lines are mostly horizontal, which makes physical sense — cars on a motorway move primarily in a horizontal direction between consecutive frames. Most matches correctly link the same static features in both frames, such as road markings, lane lines, and the concrete barrier. Some matches also correctly track moving cars that have shifted slightly between frames. A small number of lines cross each other, suggesting a few false matches.
+
+**Figure 2 — SURF Matching (31 matches)**
+
+<img src="task5_2.png" width="500">
+
+SURF produced 31 matches — slightly fewer than SIFT. The overall pattern is similar, with mostly horizontal match lines connecting road markings and static background features. However, SURF appears to cluster more matches around the cars and the top section of the frame, with fewer matches on the road surface compared to SIFT.
+
+**Figure 3 — SIFT vs SURF Side-by-Side Comparison**
+
+<img src="task5_3.png" width="500">
+
+The side-by-side comparison confirms that both methods produce geometrically consistent matches — the predominantly horizontal match lines reflect the direction of car movement between frames. SIFT found slightly more matches (37 vs 31), and the matches appear more evenly distributed across the image. Both methods successfully perform basic object tracking between the two video frames.
+
+
+
+### Conclusion
+
+Both SIFT and SURF successfully matched features between two consecutive traffic video frames, effectively tracking both static background features (road markings, barriers) and moving objects (cars). SIFT produced more matches (37 vs 31) and a more spatially even distribution. The predominantly horizontal match lines are consistent with the expected direction of car movement on a motorway. This demonstrates that feature matching can be used as a basis for object tracking in video sequences — by identifying which features in one frame correspond to features in the next.
+
+
+
+### What I Learnt & Reflections
+
+- Both SIFT and SURF can be applied to video frame matching for object tracking, not just static image comparison.
+- The direction of match lines reflects the actual motion of objects — horizontal lines confirm cars are moving laterally between frames.
+- SIFT found slightly more matches than SURF in this case, though both methods produced comparable quality results.
+- Static background features (road markings, barriers) generate the most reliable matches, while moving cars produce fewer matches due to their positional shift between frames.
+- For real-time video tracking, SURF's speed advantage over SIFT would become more important, even though it found slightly fewer matches here.
 
 
 
