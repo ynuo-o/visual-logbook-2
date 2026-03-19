@@ -212,7 +212,7 @@ The MATLAB function `find()` returns the indices of non-zero elements in an arra
 ### Objective
 Apply SIFT feature detection to two paintings — `salvador.jpg` and `cafe_van_gogh.jpg` — and explore the `points` data structure. Additionally, compare SIFT with other feature detection methods available in MATLAB: SURF, Harris, and ORB.
 
----
+
 
 ### Code
 ```matlab
@@ -271,7 +271,7 @@ plot(pointsORB.selectStrongest(100));
 title(sprintf('ORB Features - Salvador (top 100 of %d)', pointsORB.Count));
 ```
 
----
+
 
 ### The `points` Data Structure
 
@@ -283,7 +283,7 @@ The variable `points` returned by `detectSIFTFeatures` is a `SIFTPoints` object 
 - **`Count`** — total number of keypoints detected
 - **`selectStrongest(N)`** — a method that returns the N keypoints with the highest Metric values
 
----
+
 
 ### Results & Analysis
 
@@ -323,7 +323,7 @@ Harris detected 387 keypoints, shown as small crosses rather than circles, since
 
 ORB detected 3640 keypoints — the most of any method tested. ORB is designed for speed and uses binary descriptors. The top 100 are distributed similarly to SIFT and SURF, focusing on the detailed and textured regions of the painting.
 
----
+
 
 ### Comparison of Methods
 
@@ -334,13 +334,13 @@ ORB detected 3640 keypoints — the most of any method tested. ORB is designed f
 | Harris | 387            | ❌              | ❌                | Fast  |
 | ORB    | 3640           | ✅              | ✅                | Fast  |
 
----
+
 
 ### Conclusion
 
 SIFT successfully detects keypoints at semantically meaningful locations — areas with rich local structure such as the clocks, the ants, and the cliff. The `points` data structure stores location, scale, and strength for each keypoint. The Van Gogh painting produces far more keypoints than the Dalí due to its heavily textured brushstroke style. Among the methods compared, SIFT and SURF produce the most reliable and well-distributed keypoints, while Harris detects only corners without scale information, and ORB detects the most points but at the cost of descriptor quality.
 
----
+
 
 ### What I Learnt & Reflections
 
