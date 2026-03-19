@@ -4,3 +4,5 @@ This repository contains the Design for Visual Systems laboratory logbook (lab 5
 * README file – containing structured notes, explanations, and observations for the lab tasks.
 * Generated images – all figures and visual results produced during the experiments.
 * MATLAB files – implementation code in both .mlx live script and .m function/script formats.
+
+AI tools were used to assist with debugging and refining the language in this logbook.
