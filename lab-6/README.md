@@ -632,7 +632,116 @@ Both SIFT and SURF successfully matched features between two consecutive traffic
 - For real-time video tracking, SURF's speed advantage over SIFT would become more important, even though it found slightly fewer matches here.
 
 
+## Task 6: Image Recognition using Neural Networks
 
+### Objective
+Use a pre-trained neural network (SqueezeNet) with a webcam to classify real-world objects in real time. The task involves single image classification, comparing different networks, and running a continuous recognition loop.
+
+
+
+### Code
+```matlab
+% Lab 6 Task 6 - Object recognition using webcam and neural networks
+clear all; close all;
+
+%% ===== Part 1: Single image classification =====
+camera = webcam;
+net = squeezenet;
+inputSize = net.Layers(1).InputSize(1:2);
+
+figure(1);
+I = snapshot(camera);
+image(I);
+f = imresize(I, inputSize);
+tic;
+[label, score] = classify(net, f);
+t = toc;
+title({char(label), ...
+       sprintf('Score: %.2f', max(score)), ...
+       sprintf('Time: %.3f sec', t)});
+fprintf('Label: %s\n', char(label));
+fprintf('Confidence: %.2f%%\n', max(score)*100);
+fprintf('Time taken: %.3f seconds\n', t);
+
+%% ===== Part 2: Try different networks and compare =====
+networks = {'googlenet', 'alexnet', 'squeezenet'};
+figure(2);
+I = snapshot(camera);
+for i = 1:length(networks)
+    try
+        net_i = eval(networks{i});
+        inputSize_i = net_i.Layers(1).InputSize(1:2);
+        f_i = imresize(I, inputSize_i);
+        tic;
+        [label_i, score_i] = classify(net_i, f_i);
+        t_i = toc;
+        fprintf('%s: %s (%.2f%%) in %.3f sec\n', ...
+                networks{i}, char(label_i), max(score_i)*100, t_i);
+    catch
+        fprintf('%s not installed\n', networks{i});
+    end
+end
+
+%% ===== Part 3: Continuous loop =====
+figure(3);
+disp('Press Ctrl+C to stop');
+while true
+    I = snapshot(camera);
+    f = imresize(I, inputSize);
+    tic;
+    [label, score] = classify(net, f);
+    t = toc;
+    image(I);
+    title({char(label), ...
+           sprintf('Score: %.2f%%', max(score)*100), ...
+           sprintf('Time: %.3f sec', t)});
+    drawnow;
+end
+```
+
+
+
+### About SqueezeNet
+
+SqueezeNet is a compact convolutional neural network pre-trained on the ImageNet dataset, which contains 1000 object categories. It accepts 227×227 pixel RGB images as input. Compared to larger networks like GoogLeNet or AlexNet, SqueezeNet is much faster (under 0.01 seconds per frame) but generally less accurate. Only SqueezeNet was available on this machine — GoogLeNet and AlexNet were not installed.
+
+
+
+### Results & Analysis
+
+**Result 1 — Green wallet → classified as `bath towel` (15.74%)**
+
+<img src="task6_1.png" width="400">
+
+The object shown is a green leather wallet. SqueezeNet classified it as `bath towel` with 15.74% confidence. This is incorrect, but understandable — the green textured leather surface may visually resemble the fabric texture of a towel at the 227×227 resolution the network processes. The low confidence score also indicates the network was uncertain.
+
+**Result 2 — Dettol wipes packet → classified as `packet` (18.53%)**
+
+<img src="task6_2.png" width="400">
+
+The object shown is a Dettol surface wipes packet. SqueezeNet classified it as `packet` with 18.53% confidence. This is the most accurate result — the network correctly identified the general category of the object. The confidence is still relatively low, likely because the specific branding and colour pattern does not closely match any single ImageNet training example.
+
+
+
+### Conclusion
+
+SqueezeNet successfully ran in real time, classifying each webcam frame in under 0.01 seconds. However, classification accuracy was generally low, with confidence scores rarely exceeding 20%. Several factors contributed to this:
+
+- **Cluttered backgrounds** — hands, clothing, and furniture in the frame confused the network
+- **Objects not in ImageNet** — a UK plug adapter for example is not a standard ImageNet category
+- **Limited model capacity** — SqueezeNet is optimised for speed, not accuracy
+
+The most accurate result was the Dettol wipes packet correctly identified as `packet`. GoogLeNet and AlexNet were not installed on this machine, so a direct speed and accuracy comparison between networks was not possible.
+
+
+
+### What I Learnt & Reflections
+
+- Pre-trained CNNs like SqueezeNet can classify images in milliseconds, making real-time recognition feasible even on a laptop.
+- Classification accuracy depends heavily on whether the object belongs to a category in the training dataset — objects outside ImageNet's 1000 classes will always produce low-confidence or incorrect results.
+- Background clutter significantly reduces accuracy, as the network processes the entire frame rather than isolating the object of interest.
+- A larger network like GoogLeNet or ResNet would likely achieve higher accuracy at the cost of slower inference time.
+- This task demonstrated the real-world gap between benchmark performance and practical deployment — controlled conditions matter greatly for reliable recognition.
 
 
 
