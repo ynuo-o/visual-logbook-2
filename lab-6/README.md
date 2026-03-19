@@ -418,7 +418,112 @@ Comparing the two figures, the spatial distribution of the top 100 features is r
 - In real applications such as image stitching or object recognition, this scale invariance means SIFT can match features between a close-up and a distant view of the same scene.
 
 
+## Task 4 (continued): SIFT Matching — Scale and Rotation Invariance
 
+### Objective
+Match SIFT features between the original and half-size versions of `cafe_van_gogh.jpg` using all points and top 100 points, then verify SIFT's rotation invariance by rotating the smaller image by 20 degrees before matching.
+
+
+
+### Code
+```matlab
+clear all; close all;
+
+I1 = imread('assets/cafe_van_gogh.jpg');
+I2 = imresize(I1, 0.5);
+f1 = im2gray(I1);
+f2 = im2gray(I2);
+
+points1 = detectSIFTFeatures(f1);
+points2 = detectSIFTFeatures(f2);
+
+Nbest = 100;
+bestFeatures1 = points1.selectStrongest(Nbest);
+bestFeatures2 = points2.selectStrongest(Nbest);
+
+%% Part 1: Match using ALL points
+[features1, valid_points1] = extractFeatures(f1, points1);
+[features2, valid_points2] = extractFeatures(f2, points2);
+
+indexPairs = matchFeatures(features1, features2, 'Unique', true);
+matchedPoints1 = valid_points1(indexPairs(:,1),:);
+matchedPoints2 = valid_points2(indexPairs(:,2),:);
+
+figure(1);
+showMatchedFeatures(f1, f2, matchedPoints1, matchedPoints2);
+title(sprintf('Matched using ALL points — %d matches', size(indexPairs,1)));
+
+%% Part 2: Match using top 100 only
+[features1, valid_points1] = extractFeatures(f1, bestFeatures1);
+[features2, valid_points2] = extractFeatures(f2, points2.selectStrongest(Nbest));
+
+indexPairs2 = matchFeatures(features1, features2, 'Unique', true);
+matchedPoints1b = valid_points1(indexPairs2(:,1),:);
+matchedPoints2b = valid_points2(indexPairs2(:,2),:);
+
+figure(2);
+showMatchedFeatures(f1, f2, matchedPoints1b, matchedPoints2b);
+title(sprintf('Matched using top 100 points — %d matches', size(indexPairs2,1)));
+
+%% Part 3: Rotate smaller image by 20 degrees
+I2_rot = imrotate(I2, 20);
+f2_rot = im2gray(I2_rot);
+
+points2_rot = detectSIFTFeatures(f2_rot);
+
+[features1r, valid_points1r] = extractFeatures(f1, bestFeatures1);
+[features2r, valid_points2r] = extractFeatures(f2_rot, points2_rot.selectStrongest(Nbest));
+
+indexPairs3 = matchFeatures(features1r, features2r, 'Unique', true);
+matchedPoints1r = valid_points1r(indexPairs3(:,1),:);
+matchedPoints2r = valid_points2r(indexPairs3(:,2),:);
+
+figure(3);
+showMatchedFeatures(f1, f2_rot, matchedPoints1r, matchedPoints2r);
+title(sprintf('Matched after 20 degree rotation — %d matches', size(indexPairs3,1)));
+```
+
+
+
+### Results & Analysis
+
+**Figure 1 — Matched using ALL points (2261 matches)**
+
+<img src="task4_2_1.png" width="400">
+
+Using all detected SIFT points produced 2261 matches. However, the result is clearly overcrowded — the match lines radiate in all directions and many are clearly incorrect (false matches), as lines cross each other randomly rather than forming a consistent geometric pattern. This is because with thousands of points, many features in one image find a numerically close but geometrically wrong match in the other image.
+
+**Figure 2 — Matched using top 100 points (48 matches)**
+
+<img src="task4_2_2.png" width="400">
+
+Restricting matching to the top 100 strongest points reduced the matches to 48, but the quality improved significantly. The match lines are more consistent and directional — most lines point from the corresponding region in the original image to the correct scaled position in the half-size image. The smaller image (shown as the cyan overlay) is correctly positioned within the original, confirming that the strongest SIFT features are reliably matched across scales.
+
+**Figure 3 — Matched after 20 degree rotation (28 matches)**
+
+<img src="task4_2_3.png" width="400">
+
+After rotating the smaller image by 20 degrees, SIFT still produced 28 correct matches. The rotated image (cyan overlay) is clearly tilted relative to the original, yet the match lines still correctly connect corresponding regions between the two images. This demonstrates that SIFT is **rotation invariant** — it assigns a dominant orientation to each keypoint based on local gradient directions, allowing it to match features regardless of the image orientation.
+
+
+
+### Conclusion
+
+These three experiments demonstrate two key properties of SIFT:
+
+- **Scale invariance**: SIFT successfully matches features between the original and half-size image, even though all pixel coordinates and feature scales differ by a factor of 2.
+- **Rotation invariance**: SIFT successfully matches features between the original and a 20-degree rotated version of the image, with 28 correct matches found.
+
+Using all points produces too many false matches due to ambiguity. Selecting only the strongest features improves match quality significantly, as these points are more distinctive and less likely to produce false positives.
+
+
+
+### What I Learnt & Reflections
+
+- Using all SIFT points for matching produces many false matches — restricting to the strongest features gives cleaner and more reliable results.
+- SIFT assigns each keypoint a dominant orientation from the local gradient histogram, making it invariant to rotation — this is confirmed by the successful matching after a 20 degree rotation.
+- The number of correct matches decreases after rotation (48 → 28), which is expected since some features near the image boundary are cropped out by `imrotate`, reducing the number of candidates.
+- In real applications like panorama stitching or object recognition, SIFT's combined scale and rotation invariance makes it one of the most robust feature detectors available.
 
 
 
