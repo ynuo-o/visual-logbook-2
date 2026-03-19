@@ -350,7 +350,72 @@ SIFT successfully detects keypoints at semantically meaningful locations — are
 - Harris is a simpler corner detector with no scale information, making it less powerful for cross-scale matching but faster and easier to interpret.
 - ORB is a good choice when speed is critical, as it uses efficient binary descriptors while still being scale and rotation invariant.
 
+## Task 4: SIFT Matching Across Scales
 
+### Objective
+Use SIFT feature detection on two versions of the same image at different scales — the original `cafe_van_gogh.jpg` and a half-size version — to evaluate how well SIFT detects consistent features across different resolutions.
+
+
+
+### Code
+```matlab
+clear all; close all;
+I1 = imread('assets/cafe_van_gogh.jpg');
+I2 = imresize(I1, 0.5);
+f1 = im2gray(I1);
+f2 = im2gray(I2);
+points1 = detectSIFTFeatures(f1);
+points2 = detectSIFTFeatures(f2);
+Nbest = 100;
+bestFeatures1 = points1.selectStrongest(Nbest);
+bestFeatures2 = points2.selectStrongest(Nbest);
+figure(1); imshow(I1);
+hold on;
+plot(bestFeatures1);
+title(sprintf('SIFT - Original (top 100 of %d)', points1.Count));
+hold off;
+figure(2); imshow(I2);
+hold on;
+plot(bestFeatures2);
+title(sprintf('SIFT - Half size (top 100 of %d)', points2.Count));
+hold off;
+```
+
+
+
+### Results & Analysis
+
+**Figure 1 — SIFT: Original Image (top 100 of 8340)**
+
+<img src="task4_1.png" width="400">
+
+The original image produced 8340 SIFT keypoints in total. The top 100 strongest are distributed across the most distinctive regions — the glowing stars in the night sky, the café terrace furniture, the cobblestones, and the building edges. Circle sizes vary considerably, reflecting features detected at multiple scales.
+
+**Figure 2 — SIFT: Half-Size Image (top 100 of 2931)**
+
+<img src="task4_2.png" width="400">
+
+The half-size image produced 2931 keypoints — significantly fewer than the original (8340). This is expected because downsampling reduces fine detail, making many small-scale features undetectable. However, the top 100 strongest keypoints are located in the **same semantic regions** as the original — the stars, the café tables and chairs, the cobblestones, and the building facades.
+
+
+
+### Conclusions
+
+Comparing the two figures, the spatial distribution of the top 100 features is remarkably consistent between the original and half-size images. Key observations:
+
+- The **same prominent regions** attract the strongest keypoints in both images — stars, furniture, building edges — demonstrating SIFT's scale invariance in practice.
+- The **total number of keypoints drops** from 8340 to 2931 at half resolution, because fine-grained texture details that were detectable at full resolution are lost after downsampling.
+- The **circle sizes in Figure 2 are relatively larger** compared to Figure 1, because SIFT adapts its detection scale to the image resolution — the same physical feature occupies fewer pixels in the smaller image, so it is captured at a coarser scale level.
+- SIFT is considered **scale-invariant** because it builds a scale-space pyramid and detects features at the scale where they are most stable. This allows it to find corresponding features across images of different sizes.
+
+
+
+### What I Learnt & Reflections
+
+- SIFT detects features at the scale where they are most distinctive, making it robust to changes in image size — this is its key advantage over simpler detectors like Harris.
+- Reducing image size reduces the total number of detectable features, but the strongest and most distinctive features survive across scales.
+- The consistency of keypoint locations between the two images confirms that SIFT's scale-space approach successfully identifies the same physical structures regardless of resolution.
+- In real applications such as image stitching or object recognition, this scale invariance means SIFT can match features between a close-up and a distant view of the same scene.
 
 
 
